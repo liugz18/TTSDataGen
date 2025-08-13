@@ -1,0 +1,6 @@
+*.wav
+*TF.tsv
+*.xlsx
+__pycache__/
+tts1.py
+tts2.py 
