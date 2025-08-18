@@ -38,7 +38,7 @@ def generate_dialect_audio(text, index, api_key, output_dir="dialect_audios"):
         model="qwen-tts-2025-05-22",
         api_key=api_key,
         text=text,
-        voice="Sunny"
+        voice="Jada"
     )
     
     # 处理API响应
@@ -59,9 +59,9 @@ def generate_dialect_audio(text, index, api_key, output_dir="dialect_audios"):
 def main():
     # 配置参数
     API_KEY = input("输入Qwen API Key：")  # 替换为您的API密钥
-    EXCEL_FILE = "20250812西南官话精品句.xlsx"
-    OUTPUT_DIR = "./"
-    from XiNanData import sentences
+    # EXCEL_FILE = "20250812西南官话精品句.xlsx"
+    OUTPUT_DIR = "../ShangHaiData"
+    from ShangHaiData import sentences
     
     # 处理每条方言并生成音频
     success_count = 0
