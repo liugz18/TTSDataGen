@@ -1,10 +1,29 @@
+import os
 import re
 import csv
 from collections import Counter
+import importlib
 
-from XiNanData import sentences
+def extract_normalized_word(text):
+    """
+    处理规格化词汇中的{}格式，提取括号内的内容
+    例如：{爪母(蚱蜢)} -> 蚱蜢
+    """
+    # 找到所有{...(...)}格式的部分
+    pattern = r'\{([^{}]*?)\(([^{}]*?)\)\}'
+    
+    def replace_func(match):
+        # 返回括号内的内容
+        return match.group(2)
+    
+    # 替换所有匹配的部分
+    result = re.sub(pattern, replace_func, text)
+    return result
 
 FILE_PREFIX = "XiNan"
+module_name = f'{FILE_PREFIX}Data'
+module = importlib.import_module(module_name)
+sentences = module.sentences
 
 def save_dataset():
     import pandas as pd
@@ -48,6 +67,62 @@ def analyze_length_distribution(word_freq):
         length_counts[len(word)] += 1
     return length_freq, length_counts
 
+def save_sentences_to_text(data_path):
+    """
+    读取XiNanData.py中的sentences变量和XiNanDictMerged.tsv文件，在data_path路径下生成text.txt文件。
+    每行内容为：文件名 \t 替换【】词汇后的句子 \t 原始【】中的词汇（逗号分隔）
+    文件名格式为：dialect_0000.wav, dialect_0001.wav, ...
+    """
+    
+    # 读取词汇映射字典
+    dict_file = FILE_PREFIX + "DictMerged.tsv"
+    word_mapping = {}
+    
+    try:
+        with open(dict_file, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line:
+                    parts = line.split('\t')
+                    if len(parts) >= 2:
+                        original_word = parts[0].strip()
+                        normalized_word = parts[1].strip()
+                        # 去除【】符号进行匹配
+                        original_clean = original_word.replace("【", "").replace("】", "")
+                        normalized_clean = normalized_word.replace("【", "").replace("】", "")
+                        # 处理{}格式，提取括号内的内容
+                        normalized_clean = extract_normalized_word(normalized_clean)
+                        word_mapping[original_clean] = normalized_clean
+    except FileNotFoundError:
+        print(f"警告：找不到文件 {dict_file}，将使用原始词汇")
+    
+    output_file = os.path.join(data_path, "text.txt")
+    pattern = r"【(.*?)】"
+
+    with open(output_file, "w", encoding="utf-8") as f:
+        for idx, sentence in enumerate(sentences):
+            filename = f"dialect_{idx:04d}.wav"
+            
+            # 提取所有【】中的词汇
+            words = re.findall(pattern, sentence)
+            original_words = list(set(words))  # 去重
+            
+            # 替换句子中的词汇
+            replaced_sentence = sentence
+            for word in words:
+                if word in word_mapping:
+                    # 替换为规格化词汇
+                    replaced_sentence = replaced_sentence.replace(f"【{word}】", f"【{word_mapping[word]}】")
+                else:
+                    # 如果找不到映射，提示
+                    print(f"找不到映射: {word} in Sentence: {idx}")
+            
+            # 将原始词汇用逗号连接
+            words_str = ",".join(original_words)
+            f.write(f"{filename}\t{replaced_sentence}\t{words_str}\n")
+
+    print(f"text.txt已生成于: {output_file}")
+
 # 主流程
 if __name__ == "__main__":
     # 统计词频
@@ -68,3 +143,7 @@ if __name__ == "__main__":
     print("\n词汇长度分布：")
     for length, count in sorted(length_freq.items()):
         print(f"{length}字词: {count}次（涉及{length_counts[length]}个词）")
+    
+    # 保存句子到文本文件
+    data_path = "../XiNanData"
+    save_sentences_to_text(data_path)

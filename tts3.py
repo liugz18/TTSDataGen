@@ -9,7 +9,7 @@ from tqdm import tqdm  # 用于显示进度条
 def clean_dialect_text(text):
     """
     清洗方言文本：移除【】符号和（）及其内容
-    示例：输入"那个娃儿【灵醒】得很，学东西一哈（下）就上手了。"
+    示例：输入"那个娃儿【灵醒】得很，学东西一{哈（下）}就上手了。"
          输出"那个娃儿灵醒得很，学东西一哈就上手了。"
     """
     # 移除【】符号（保留中间内容）
@@ -17,7 +17,9 @@ def clean_dialect_text(text):
     
     # 移除（）及其中的内容
     text = re.sub(r'（[^)]*）', '', text)
-    
+
+    # 移除{}符号（保留中间内容）
+    text = re.sub(r'\{(.*?)\}', r'\1', text)
     return text.strip()
 
 def generate_dialect_audio(text, index, api_key, output_dir="dialect_audios"):
